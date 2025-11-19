@@ -1,48 +1,35 @@
 """
-Database Schemas
-
-Define your MongoDB collection schemas here using Pydantic models.
-These schemas are used for data validation in your application.
+Database Schemas for Job Scraper
 
 Each Pydantic model represents a collection in your database.
 Model name is converted to lowercase for the collection name:
 - User -> "user" collection
-- Product -> "product" collection
-- BlogPost -> "blogs" collection
+- Job -> "job" collection
+- Keyword -> "keyword" collection
 """
 
-from pydantic import BaseModel, Field
-from typing import Optional
-
-# Example schemas (replace with your own):
+from pydantic import BaseModel, Field, EmailStr
+from typing import Optional, List
+from datetime import datetime
 
 class User(BaseModel):
-    """
-    Users collection schema
-    Collection name: "user" (lowercase of class name)
-    """
-    name: str = Field(..., description="Full name")
-    email: str = Field(..., description="Email address")
-    address: str = Field(..., description="Address")
-    age: Optional[int] = Field(None, ge=0, le=120, description="Age in years")
-    is_active: bool = Field(True, description="Whether user is active")
+    email: EmailStr = Field(..., description="User email to notify")
+    keywords: List[str] = Field(default_factory=list, description="Keywords the user wants to track")
+    notify_webhook: Optional[str] = Field(None, description="Optional webhook (e.g., Slack) to send notifications")
+    is_active: bool = Field(True)
 
-class Product(BaseModel):
-    """
-    Products collection schema
-    Collection name: "product" (lowercase of class name)
-    """
-    title: str = Field(..., description="Product title")
-    description: Optional[str] = Field(None, description="Product description")
-    price: float = Field(..., ge=0, description="Price in dollars")
-    category: str = Field(..., description="Product category")
-    in_stock: bool = Field(True, description="Whether product is in stock")
+class Job(BaseModel):
+    source: str = Field(..., description="Source name: upwork, linkedin, reddit, myjobmag, etc")
+    title: str
+    url: str
+    company: Optional[str] = None
+    location: Optional[str] = None
+    description: Optional[str] = None
+    posted_at: Optional[datetime] = None
+    # normalized fields for dedup
+    fingerprint: str = Field(..., description="Unique hash per job")
+    keywords: List[str] = Field(default_factory=list)
 
-# Add your own schemas here:
-# --------------------------------------------------
-
-# Note: The Flames database viewer will automatically:
-# 1. Read these schemas from GET /schema endpoint
-# 2. Use them for document validation when creating/editing
-# 3. Handle all database operations (CRUD) directly
-# 4. You don't need to create any database endpoints!
+class Keyword(BaseModel):
+    term: str
+    created_by: Optional[str] = Field(None, description="Email of the user who added it")
